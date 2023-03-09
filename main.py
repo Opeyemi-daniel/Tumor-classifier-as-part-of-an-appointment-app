@@ -102,8 +102,10 @@ class Appointment(db.Model):
     day = db.Column(db.String, nullable=False)
     time = db.Column(db.String, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_name = db.Column(db.String, nullable=True)
     user = relationship("User", back_populates="appointment")
     hospital_id = db.Column(db.Integer, db.ForeignKey('hospital.id'), nullable=False)
+    hospital_name = db.Column(db.String, nullable=False)
     hospital = relationship("Hospital", back_populates="patients")
     status = db.Column(db.String, nullable=False)
 
@@ -204,24 +206,27 @@ def get_the_hospital(current_user):
 @app.route('/add_hospital', methods=['GET', 'POST'])
 def post_new_hospital():
     email = request.form.get('email')
-    result = Hospital.query.filter_by(email=email).first()
-    if result:
-        return jsonify(error={'error': 'username already created'}), 208
+    try: 
+        result = Hospital.query.filter_by(email=email).first()
+        if result:
+            return jsonify(error={'error': 'username already created'}), 208
 
-    else:
-        new_hospital = Hospital(
+        else:
+            new_hospital = Hospital(
             name=request.form.get('name'),
             email=request.form.get('email'),
             password=generate_password_hash(request.form.get('password'), method='pbkdf2:sha256', salt_length=8),
             location=request.form.get('location'),
             about=request.form.get('about')
-        )
+            )
         db.session.add(new_hospital)
         db.session.commit()
         token = jwt.encode({'email': email,
                             'exp': datetime.utcnow() + timedelta(seconds=5), },
                            app.config['SECRET_KEY'])
         return jsonify({'token': token})
+    except Exception as e:
+        return jsonify({'error': e})
 
 # Login user
 @app.route('/login_user', methods=['GET', 'POST'])
@@ -270,12 +275,15 @@ def hospital_login():
 @app.route('/book_appointment', methods=['GET', 'POST'])
 @token_required
 def book_appointment(current_user):
+    d_hospital_name = Hospital.query.filter_by(id=request.form.get('hospital_id')).first()
     new_appointment = Appointment(
         date=request.form.get('date'),
         time=request.form.get('time'),
         day=request.form.get('day'),
         user_id=current_user.id,
         hospital_id=request.form.get('hospital_id'),
+        hospital_name=d_hospital_name.name,
+        user_name=current_user.name,
         status='upcoming'
     )
     db.session.add(new_appointment)
@@ -293,6 +301,20 @@ def get_all_appointments():
         return jsonify({'Error': 'No current appointments'}), 204
 
 
+# Fetch all Appointments for a user
+@app.route('/user/appointments')
+@token_required
+def get_user_appointments(current_user):
+    try:
+        appointments = Appointment.query.filter_by(user_id=current_user.id).all()
+        if appointments:
+            return jsonify(All_Appointments=[all_appointment.to_dict() for all_appointment in appointments]), 200
+        else:
+            return jsonify({'Error': 'No current appointments'}), 204
+    except Exception as e:
+        return jsonify({"Error":e})
+
+
 # get all upcoming appointments of a particular user
 @app.route('/upcoming/user/appointment')
 @token_required
@@ -306,9 +328,8 @@ def get_user_appointment(current_user):
     else:
         return jsonify({'Error': 'No current appointments'}), 204
 
-    # get all cancled appointments of a particular user
 
-
+# get all cancled appointments of a particular user
 @app.route('/cancled/user/appointment')
 @token_required
 def get_cancled_user_appointment(current_user):

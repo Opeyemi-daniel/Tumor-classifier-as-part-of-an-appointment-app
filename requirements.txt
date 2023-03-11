@@ -1,11 +1,12 @@
 Flask==2.2.3
 Flask_Login==0.6.2
 flask_sqlalchemy==3.0.3
-tensorflow==2.11.0
 keras==2.11.0
 numpy==1.21.2
 opencv_python==4.6.0.66
 Pillow==9.4.0
 PyJWT==2.6.0
+python-dotenv==1.0.0
 SQLAlchemy==2.0.5.post1
+tensorflow==2.11.0
 Werkzeug==2.2.3

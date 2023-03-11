@@ -7,6 +7,8 @@ from keras.models import load_model
 import cv2
 from PIL import Image
 
+import os
+from dotenv import load_dotenv
 from functools import wraps
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
@@ -17,12 +19,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 
 # Connect to Database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///madicals.db'
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///madicals.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'something_secret_i_guess'
 db = SQLAlchemy(app)
 
-
+load_dotenv()
 new_model = load_model('./effnet.h5')
 
 # token required
@@ -51,8 +54,8 @@ class Hospital(UserMixin, db.Model):
     __tablename__ = 'hospital'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(250), nullable=False)
-    email = db.Column(db.String(100), nullable=False, unique=True)
-    password = db.Column(db.String(50))
+    email = db.Column(db.String(250), nullable=False, unique=True)
+    password = db.Column(db.String(250))
     location = db.Column(db.String(250), nullable=False)
     about = db.Column(db.String(250), nullable=False)
     patients = relationship("Appointment", back_populates="hospital")
@@ -76,8 +79,8 @@ class User(UserMixin, db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(250), nullable=False)
-    email = db.Column(db.String(100), nullable=False, unique=True)
-    password = db.Column(db.String(50))
+    email = db.Column(db.String(250), nullable=False, unique=True)
+    password = db.Column(db.String(250))
     age = db.Column(db.String, nullable=False)
     appointment = relationship("Appointment", back_populates="user")
 
@@ -98,16 +101,16 @@ with app.app_context():
 class Appointment(db.Model):
     __tablename__ = 'appointments'
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.String, nullable=False)
-    day = db.Column(db.String, nullable=False)
-    time = db.Column(db.String, nullable=False)
+    date = db.Column(db.String(50), nullable=False)
+    day = db.Column(db.String(50), nullable=False)
+    time = db.Column(db.String(50), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_name = db.Column(db.String, nullable=True)
+    user_name = db.Column(db.String(100), nullable=True)
     user = relationship("User", back_populates="appointment")
     hospital_id = db.Column(db.Integer, db.ForeignKey('hospital.id'), nullable=False)
-    hospital_name = db.Column(db.String, nullable=False)
+    hospital_name = db.Column(db.String(100), nullable=False)
     hospital = relationship("Hospital", back_populates="patients")
-    status = db.Column(db.String, nullable=False)
+    status = db.Column(db.String(50), nullable=False)
 
     def to_dict(self):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
@@ -207,12 +210,13 @@ def get_the_hospital(current_user):
 @app.route('/add_hospital', methods=['GET', 'POST'])
 def post_new_hospital():
     email = request.form.get('email')
+    print(email)
     try: 
         result = Hospital.query.filter_by(email=email).first()
         if result:
             return jsonify(error={'error': 'username already created'}), 208
-
         else:
+            print('here')
             new_hospital = Hospital(
             name=request.form.get('name'),
             email=request.form.get('email'),
@@ -227,7 +231,8 @@ def post_new_hospital():
                            app.config['SECRET_KEY'])
         return jsonify({'token': token})
     except Exception as e:
-        return jsonify({'error': e})
+        print(e)
+        return jsonify({'error': 'e'})
 
 # Login user
 @app.route('/login_user', methods=['GET', 'POST'])

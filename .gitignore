@@ -1,0 +1,4 @@
+.env
+venv/
+madicals.db
+.vscode/

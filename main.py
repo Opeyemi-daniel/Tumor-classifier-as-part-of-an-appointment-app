@@ -3,18 +3,16 @@ import jwt
 
 import tensorflow as tf
 import numpy as np
-from keras.models import Model, load_model
+from keras.models import load_model
 import cv2
 from PIL import Image
-from random import randint
 
 from functools import wraps
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
 from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta
-import werkzeug
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
 
 app = Flask(__name__)
 
@@ -70,7 +68,8 @@ class Hospital(UserMixin, db.Model):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
 
-db.create_all()
+with app.app_context():
+    db.create_all()
 
 
 class User(UserMixin, db.Model):
@@ -92,7 +91,8 @@ class User(UserMixin, db.Model):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
 
-db.create_all()
+with app.app_context():
+    db.create_all()
 
 
 class Appointment(db.Model):
@@ -113,7 +113,8 @@ class Appointment(db.Model):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
 
-db.create_all()
+with app.app_context():
+    db.create_all()
 
 
 @app.route('/')
@@ -401,8 +402,8 @@ def complete_appointment(current_user):
 @app.route('/predict_tumor', methods=['GET', 'POST'])
 def predict_tumor():
     imagefile = request.files['image']
-    filename = werkzeug.utils.secure_filename(imagefile.filename)
-    imagefile.save('./images/'+ filename)
+    # filename = werkzeug.utils.secure_filename(imagefile.filename)
+    # imagefile.save('./images/'+ filename)
     img = Image.open(imagefile.stream)
     opencvImage = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
     img = cv2.resize(opencvImage,(150,150))

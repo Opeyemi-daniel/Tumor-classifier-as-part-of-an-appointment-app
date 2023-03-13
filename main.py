@@ -419,7 +419,7 @@ def predict_tumor():
         prediction='Glioma Tumor'
     elif prediction==1:
         print('The model predicts that there is no tumor')
-        prediction = 'No Tumor'
+        prediction = 'Normal'
     elif prediction==2:
         prediction='Meningioma Tumor'
     else:

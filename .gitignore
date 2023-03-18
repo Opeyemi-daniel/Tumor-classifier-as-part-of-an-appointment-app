@@ -2,3 +2,7 @@
 venv/
 madicals.db
 .vscode/
+.ebextensions/
+.idea/
+.ebignore
+tumour_shit.zip

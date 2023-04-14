@@ -179,7 +179,7 @@ def post_new_user():
     db.session.add(new_user)
     db.session.commit()
     token = jwt.encode({'email': email,
-                        'exp': datetime.utcnow() + timedelta(seconds=140), },
+                        'exp': datetime.utcnow() + timedelta(seconds=5000), },
                        app.config['SECRET_KEY'])
     return jsonify({'token': token})
 
@@ -227,7 +227,7 @@ def post_new_hospital():
         db.session.add(new_hospital)
         db.session.commit()
         token = jwt.encode({'email': email,
-                            'exp': datetime.utcnow() + timedelta(seconds=5), },
+                            'exp': datetime.utcnow() + timedelta(seconds=5000), },
                            app.config['SECRET_KEY'])
         return jsonify({'token': token})
     except Exception as e:
@@ -250,7 +250,7 @@ def user_login():
         #  return make_response('could not verify',  401, {'Authentication': '"login required"'})
     else:
         token = jwt.encode({'email': email,
-                            'exp': datetime.utcnow() + timedelta(seconds=200), },
+                            'exp': datetime.utcnow() + timedelta(seconds=5000), },
                            app.config['SECRET_KEY'])
         return jsonify({'token': token})
 
@@ -272,7 +272,7 @@ def hospital_login():
     else:
         print("login")
         token = jwt.encode({'email': email,
-                            'exp': datetime.utcnow() + timedelta(seconds=5), },
+                            'exp': datetime.utcnow() + timedelta(seconds=5000), },
                            app.config['SECRET_KEY'])
         return jsonify({'token': token})
 
@@ -319,6 +319,19 @@ def get_user_appointments(current_user):
             return jsonify({'Error': 'No current appointments'}), 204
     except Exception as e:
         return jsonify({"Error":e})
+    
+# Fetch all Appointments of users under an hospital
+@app.route('/hospital/patient/appointments')
+@token_required
+def get_patient_appointments(current_user):
+    try:
+        appointments = Appointment.query.filter_by(hospital_id=current_user.id).all()
+        if appointments:
+            return jsonify(All_Appointments=[all_appointment.to_dict() for all_appointment in appointments]), 200
+        else:
+            return jsonify({'Error': 'No current appointments'}), 204
+    except Exception as e:
+        return jsonify({"Error":e})
 
 
 # get all upcoming appointments of a particular user
@@ -329,8 +342,12 @@ def get_user_appointment(current_user):
     upcoming_user_appointment = Appointment.query.filter_by(user_id=id, status='upcoming').all()
     print('this')
     if upcoming_user_appointment:
+        for i in upcoming_user_appointment:
+            print(i.date)
+            print(datetime.now())
+            print(datetime.now()- i.date)
         return jsonify(Upcoming=[upcoming.to_dict() for upcoming in upcoming_user_appointment if datetime.now()
-                                 < datetime.strptime(upcoming.date, "%m/%d/%Y")])
+                                 <= datetime.strptime(upcoming.date, "%Y-%m-%d")])
     else:
         return jsonify({'Error': 'No current appointments'}), 204
 

@@ -19,8 +19,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 
 # Connect to Database
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///madicals.db'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///madicals.db'
+# app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'something_secret_i_guess'
 db = SQLAlchemy(app)
@@ -340,14 +340,10 @@ def get_patient_appointments(current_user):
 def get_user_appointment(current_user):
     id = current_user.id
     upcoming_user_appointment = Appointment.query.filter_by(user_id=id, status='upcoming').all()
-    print('this')
     if upcoming_user_appointment:
-        for i in upcoming_user_appointment:
-            print(i.date)
-            print(datetime.now())
-            print(datetime.now()- i.date)
-        return jsonify(Upcoming=[upcoming.to_dict() for upcoming in upcoming_user_appointment if datetime.now()
-                                 <= datetime.strptime(upcoming.date, "%Y-%m-%d")])
+        now = datetime.now()
+        return jsonify(Upcoming=[upcoming.to_dict() for upcoming in upcoming_user_appointment if now.strftime("%m/%d/%Y") <= datetime.strptime(upcoming.date, "%m/%d/%Y").strftime("%m/%d/%Y")])
+    # datetime.strptime(upcoming.date, "%m/%d/%Y")
     else:
         return jsonify({'Error': 'No current appointments'}), 204
 
@@ -406,13 +402,14 @@ def cancel_appointment(current_user):
 @token_required
 def complete_appointment(current_user):
     id = request.form.get('id')
+    now = datetime.now()
     try:
         appointment = Appointment.query.filter_by(id=id).first()
         if appointment and appointment.user_id == current_user.id and appointment.status == 'upcoming':
-            if datetime.strptime(appointment.date, "%m/%d/%Y") <= datetime.now():
+            if datetime.strptime(appointment.date, "%m/%d/%Y").strftime("%m/%d/%Y") <= now.strftime("%m/%d/%Y"):
                 appointment.status = 'completed'
                 db.session.commit()
-                return jsonify({'Success': 'Appointment status updated'})
+                return jsonify({'Success': 'Appointment status updated'}), 200
             else:
                 return jsonify({'Error': 'The date has not arrived yet'}), 304
         else:
